@@ -11,9 +11,8 @@
 
 namespace learning {
     constexpr char kSaveEndpoint[] = "/save";
-    constexpr char kWinsEndpoint[] = "/wins";
     constexpr char kDeleteEndpoint[] = "/delete";
-    constexpr char kAllCharactersEndpoint[] = "/";
+    constexpr char kAllLinesEndpoint[] = "/";
     constexpr char kIpAddress[] = "0.0.0.0"; //localhost
     constexpr char kPort[] = "5000";
     constexpr int kThreads = 10;
@@ -21,53 +20,39 @@ namespace learning {
     class HttpServer {
         public:
         HttpServer(served::multiplexer multiplexer) : multiplexer(multiplexer) {}
-        auto SaveCharacterToMongoDb() {
+        auto SaveLineToMongoDb() {
             return [&](served::response &response, const served::request &request) {
 
                 //Leer el cuerpo de la peticion
                 json::JSON request_body = json::JSON::Load(request.body());
-                std::string size = request_body["size"].ToString();
-                auto maybe_size = string_to_character_size.find(size);
-
-                if (maybe_size == string_to_character_size.end()) {
-                    return served::response::stock_reply(400, response);
-                }
-                
-                // Tomar cada espacio necesario para la peticion
+              
                 // Llamar MongoDbHandler para agregar la informacion
                 MongoDbHandler mhandler;
-                bool insert_successful = mhandler.AddCharacterToDb(
-                    request_body["characterName"].ToString(), maybe_size->second,
-                    request_body["wins"].ToInt());
+                bool insert_successful = mhandler.AddCodeLineToDb(request_body["line"].ToString());
 
                 // Restornar si se agrego correctamente o no
                 insert_successful ? served::response::stock_reply(200, response) // 200: true
                                     : served::response::stock_reply(400, response); // 400: false
             };
         }
-        auto UpdateWins() {
+      
+        auto DeleteLineFromMongoDb() {
             return [&](served::response &response, const served::request &request) {
-                json::JSON request_body = json::JSON::Load(request.body());
-                MongoDbHandler mhandler;
-                bool update_successful =
-                mhandler.UpdateWins(request_body["characterId"].ToString());
-                update_successful ? served::response::stock_reply(200, response) 
-                                    : served::response::stock_reply(404, response); 
-            };
-        }
 
-        auto DeleteHandler() {
-            return [&](served::response &response, const served::request &request) {
+                // Leer el cuerpo de la peticion
                 json::JSON request_body = json::JSON::Load(request.body());
+
+                // Llamar MongoDbHandler para eliminar la linea de codigo
                 MongoDbHandler mhandler;
-                bool delete_successful = mhandler.RemoveCharacterFromDb(
-                    request_body["characterId"].ToString());
-                    delete_successful ? served::response::stock_reply(200, response)
-                                        : served::response::stock_reply(404, response);
+                bool delete_successful = mhandler.RemoveLineFromDb(request_body["lineId"].ToString());
+
+                // Retornar si se elimino correctamente o no
+                delete_successful ? served::response::stock_reply(200, response)
+                                    : served::response::stock_reply(404, response);
             };
         }
         
-        auto GetAllCharacters() {
+        auto GetAllLines() {
             return [&](served::response &response, const served::request &request) {
             MongoDbHandler mhandler;
             const json::JSON &all_documents = mhandler.GetAllDocuments();
@@ -78,10 +63,9 @@ namespace learning {
         }
 
         void InitializeEndpoints() {
-            multiplexer.handle(kSaveEndpoint).post(SaveCharacterToMongoDb());
-            multiplexer.handle(kWinsEndpoint).post(UpdateWins());
-            multiplexer.handle(kDeleteEndpoint).post(DeleteHandler());
-            multiplexer.handle(kAllCharactersEndpoint).get(GetAllCharacters());
+            multiplexer.handle(kSaveEndpoint).post(SaveLineToMongoDb());
+            multiplexer.handle(kDeleteEndpoint).post(DeleteLineFromMongoDb());
+            multiplexer.handle(kAllLinesEndpoint).get(GetAllLines());
         }
 
         void StartServer() {
