@@ -9,13 +9,15 @@
 #include "served/multiplexer.hpp"
 #include "served/net/server.hpp"
 
+using namespace std;
+
 namespace learning {
     constexpr char kSaveEndpoint[] = "/save";
-    constexpr char kDeleteEndpoint[] = "/delete";
+    constexpr char kClearEndpoint[] = "/clear";
     constexpr char kAllLinesEndpoint[] = "/";
-    constexpr char kIpAddress[] = "0.0.0.0"; //localhost
-    constexpr char kPort[] = "5000";
-    constexpr int kThreads = 10;
+    constexpr char kIpAddress[] = "0.0.0.0"; // Localhost
+    constexpr char kPort[] = "5000"; // Puerto
+    constexpr int kThreads = 10; // Cantidad de peticiones que soporta al mismo tiempo
 
     class HttpServer {
         public:
@@ -25,30 +27,30 @@ namespace learning {
 
                 //Leer el cuerpo de la peticion
                 json::JSON request_body = json::JSON::Load(request.body());
+                string linea = request_body["line"].ToString();
               
                 // Llamar MongoDbHandler para agregar la informacion
                 MongoDbHandler mhandler;
                 bool insert_successful = mhandler.AddCodeLineToDb(request_body["line"].ToString());
 
+                // response << "{\"line\" : \"" << linea << "\"}";
+
                 // Restornar si se agrego correctamente o no
-                insert_successful ? served::response::stock_reply(200, response) // 200: true
-                                    : served::response::stock_reply(400, response); // 400: false
+                insert_successful ? served::response::stock_reply(200, response) // 200: bien
+                                    : served::response::stock_reply(400, response); // 400: error
             };
         }
       
-        auto DeleteLineFromMongoDb() {
+        auto ClearLinesFromMongoDb() {
             return [&](served::response &response, const served::request &request) {
 
-                // Leer el cuerpo de la peticion
-                json::JSON request_body = json::JSON::Load(request.body());
-
-                // Llamar MongoDbHandler para eliminar la linea de codigo
                 MongoDbHandler mhandler;
-                bool delete_successful = mhandler.RemoveLineFromDb(request_body["lineId"].ToString());
+                bool delete_successful = mhandler.ClearLinesFromDb();
 
-                // Retornar si se elimino correctamente o no
+                // // Retornar si se elimino todo correctamente o no
                 delete_successful ? served::response::stock_reply(200, response)
                                     : served::response::stock_reply(404, response);
+
             };
         }
         
@@ -56,7 +58,7 @@ namespace learning {
             return [&](served::response &response, const served::request &request) {
             MongoDbHandler mhandler;
             const json::JSON &all_documents = mhandler.GetAllDocuments();
-            std::ostringstream stream;
+            ostringstream stream;
             stream << all_documents;
             response << stream.str();
             };
@@ -64,14 +66,15 @@ namespace learning {
 
         void InitializeEndpoints() {
             multiplexer.handle(kSaveEndpoint).post(SaveLineToMongoDb());
-            multiplexer.handle(kDeleteEndpoint).post(DeleteLineFromMongoDb());
+            multiplexer.handle(kClearEndpoint).get(ClearLinesFromMongoDb());
             multiplexer.handle(kAllLinesEndpoint).get(GetAllLines());
+
         }
 
         void StartServer() {
             mongocxx::instance instance;
             served::net::server server(kIpAddress, kPort, multiplexer);
-            std::cout << "Starting server to listen on port " << kPort << "..." << std::endl;
+            cout << "Servidor escuchando el puerto " << kPort << "..." << endl;
             server.run(kThreads);
         }
 

@@ -37,30 +37,19 @@ namespace learning {
       bsoncxx::stdx::optional<mongocxx::result::insert_one> maybe_result = 
       collection.insert_one(doc_value.view());
 
-      // Si todo salio bien o no
+      // // Si todo salio bien o no
       if(maybe_result) {
         return maybe_result->inserted_id().get_oid().value.to_string().size() != 0;
       }
+
       return false;
     }
 
-    // Remover linea de codigo de C!
-    bool RemoveLineFromDb(const std::string &lineId) {
+    // Limpiar la base de datos
+    bool ClearLinesFromDb() {
       mongocxx::collection collection = db[kCollectionName];
-      auto builder = bsoncxx::builder::stream::document{};
-      bsoncxx::oid document_id(lineId);
-      
-      bsoncxx::document::value doc = builder 
-      << "_id" << document_id << bsoncxx::builder::stream::finalize;
-
-      bsoncxx::stdx::optional<mongocxx::result::delete_result> maybe_result =
-      collection.delete_one(doc.view());
-
-      // Si todo salio bien o no
-      if(maybe_result) {
-        return maybe_result->deleted_count() == 1;
-      }
-      return false;
+      collection.drop();
+      return true;
     }
 
     json::JSON GetAllDocuments() {
@@ -68,9 +57,11 @@ namespace learning {
       mongocxx::cursor cursor = collection.find({});
       json::JSON result;
       result["lines"] = json::Array();
+      string line;
       if (cursor.begin() != cursor.end()) {
         for (auto doc : cursor) {
-          result["lines"].append(bsoncxx::to_json(doc));
+          line = bsoncxx::to_json(doc);
+          result["lines"].append(line);
         }
       }
       return result;
