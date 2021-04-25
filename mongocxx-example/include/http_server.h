@@ -30,14 +30,10 @@ namespace learning {
                 json::JSON request_body = json::JSON::Load(request.body());
                 string linea = request_body["line"].ToString();
 
-                // response << "{\"line\" : \"" << linea << "\"}";
-
                 // Restornar si se agrego correctamente o no
                 if (linea != "") {
                     
-                    string a = lector.leerLinea(linea);
-                    cout << a << endl;
-                    return served::response::stock_reply(200, response);
+                    response << lector.leerLinea(linea);
                 }
                 else {
                     return served::response::stock_reply(400, response);;

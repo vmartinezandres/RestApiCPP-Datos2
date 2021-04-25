@@ -8,15 +8,34 @@ using namespace std;
 class lineReader {    
 private:
     struct variable;
+
     variable *stackVar;
+    
     void **memoria;
+    
     int numVariables;
     int vueltaWhile;
+    int posicionVar;
+    int llavesDisponibles;
+    
     string linea;
     string primeraPalabra;
+    string tipoVar;
     string nombreVar;
-    string valorVar;
+    string valorVarStr1;
+    string valorVarStr2;
     string temporal;
+ 
+    char igualdad;
+    char operador;
+    char valorVarChar;
+
+    double valorVarNum1;   
+    double valorVarNum2;
+    double valorVarNumT;
+
+    bool isllaveAbierta;
+    
 public:
     lineReader();
     string leerLinea(string);
@@ -25,7 +44,8 @@ private:
     string abrirLlaves();
     string cerrarLlaves();
     string imprimir();
-    string asignar(string);
+    string separarDeclaracion();
+    string declarar();
     string error();
     
     void guardarInt(int);
@@ -35,7 +55,10 @@ private:
     void guardarChar(char);
 
     void popVariable();
-    void pushVariable(string tipo, string nombre, void *&puntero);
+    void pushVariable(string, string, int, bool);
+    double encontrarNumVar(int);
+    char encontrarCharVar(int);
+    int encontrarPosVar(string);
 
 };
 
