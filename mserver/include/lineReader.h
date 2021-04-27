@@ -10,12 +10,12 @@ private:
     struct variable;
 
     variable *stackVar;
+    variable *varTemp;
     
     void **memoria;
     
     int numVariables;
     int vueltaWhile;
-    int posicionVar;
     int llavesDisponibles;
     
     string linea;
@@ -44,8 +44,9 @@ private:
     string abrirLlaves();
     string cerrarLlaves();
     string imprimir();
-    string separarDeclaracion();
+    string separarAsignacion();
     string declarar();
+    string asignar();
     string error();
     
     void guardarInt(int);
@@ -53,13 +54,12 @@ private:
     void guardarLong(long);
     void guardarDouble(double);
     void guardarChar(char);
+    
+    variable* encontrarVar(string);
+    double valorVarNum(string, int);
 
-    void popVariable();
     void pushVariable(string, string, int, bool);
-    double encontrarNumVar(int);
-    char encontrarCharVar(int);
-    int encontrarPosVar(string);
-
+    void popVariable();
 };
 
 #endif

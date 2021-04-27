@@ -15,7 +15,6 @@ namespace learning {
     lineReader lector;
     constexpr char kNewLineEndpoint[] = "/newline";
     constexpr char kClearEndpoint[] = "/clear";
-    // constexpr char kAllLinesEndpoint[] = "/";
     constexpr char kIpAddress[] = "0.0.0.0"; // Localhost
     constexpr char kPort[] = "5000"; // Puerto
     constexpr int kThreads = 10; // Cantidad de peticiones que soporta al mismo tiempo
@@ -29,6 +28,8 @@ namespace learning {
                 //Leer el cuerpo de la peticion
                 json::JSON request_body = json::JSON::Load(request.body());
                 string linea = request_body["line"].ToString();
+
+                
 
                 // Restornar si se agrego correctamente o no
                 if (linea != "") {
@@ -56,20 +57,9 @@ namespace learning {
             };
         }
 
-        // auto GetAllLines() {
-        //     return [&](served::response &response, const served::request &request) {
-        //     // MongoDbHandler mhandler;
-        //     // const json::JSON &all_documents = mhandler.GetAllDocuments();
-        //     // ostringstream stream;
-        //     // stream << all_documents;
-        //     // response << stream.str();
-        //     };
-        // }
-
         void InitializeEndpoints() {
             multiplexer.handle(kNewLineEndpoint).post(NewLine());
             multiplexer.handle(kClearEndpoint).get(ClearLines());
-            // multiplexer.handle(kAllLinesEndpoint).get(GetAllLines());
 
         }
 

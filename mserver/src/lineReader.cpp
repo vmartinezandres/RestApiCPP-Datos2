@@ -52,11 +52,17 @@ string lineReader::definirOperacion() {
     else if (primeraPalabra == "int" || primeraPalabra == "float" || primeraPalabra == "long" ||
             primeraPalabra == "double" || primeraPalabra == "char") {
         tipoVar = primeraPalabra;
-        return separarDeclaracion();
+        return separarAsignacion();
     }
 
-    // Error
+    varTemp = encontrarVar(primeraPalabra);
+    if (varTemp != NULL) {
+        // Asignacion
+        return asignar();
+
+    }
     else {
+       // Error
         return error();
     }
     
@@ -91,7 +97,7 @@ string lineReader::imprimir(){
 
 }
 
-string lineReader::separarDeclaracion() {
+string lineReader::separarAsignacion() {
     istringstream isstream(linea);
  
     vueltaWhile = 1;
@@ -192,39 +198,40 @@ string lineReader::separarDeclaracion() {
                     valorVarNum1 = stod(valorVarStr1);
                 } 
                 catch(exception) {
-                    posicionVar = encontrarPosVar(valorVarStr1);
-                    if (posicionVar == -1) {
+                    varTemp = encontrarVar(valorVarStr1);
+                    if (varTemp == NULL) {
                         return "{\"tipo\" : \"Error\", \"respuesta\" : \"Asignacion no valida\"}";
                     }
-                    valorVarNum1 = encontrarNumVar(posicionVar);
+                    valorVarNum1 = valorVarNum(varTemp->tipo, varTemp->posicion);
+                    
                 }
                 if (operador != NULL) {
                     try{
                         valorVarNum2 = stod(valorVarStr2);
                     } 
                     catch(exception) {
-                        posicionVar = encontrarPosVar(valorVarStr2);
-                        if (posicionVar == -1) {
+                        varTemp = encontrarVar(valorVarStr2);
+                        if (varTemp == NULL) {
                             return "{\"tipo\" : \"Error\", \"respuesta\" : \"Asignacion no valida\"}";
                         }
-                        valorVarNum2 = encontrarNumVar(posicionVar);
+                        valorVarNum2 = valorVarNum(varTemp->tipo, varTemp->posicion);
                     }
                 }   
             }
             else {
                 // Tipo char
                 if (operador != NULL) {
-                    return "{\"tipo\" : \"Error\", \"respuesta\" : \"Declaracion incorrecta, el tipo char no se pueden operar)\"}";
+                    return "{\"tipo\" : \"Error\", \"respuesta\" : \"Asignacion no valida, char no se pueden operar)\"}";
                 }
                 else {
-                    posicionVar = encontrarPosVar(valorVarStr1);
-                    if (posicionVar == -1) {
+                    varTemp = encontrarVar(valorVarStr1);
+                    if (varTemp == NULL) {
                         if (valorVarStr1.length() != 3) {
-                            return "{\"tipo\" : \"Error\", \"respuesta\" : \"Declaracion incorrecta del char\"}";
+                            return "{\"tipo\" : \"Error\", \"respuesta\" : \"Asignacion incorrecta de char\"}";
                             
                         }
                         else if (valorVarStr1[0] != '\'' || valorVarStr1[2] != '\'') {
-                            return "{\"tipo\" : \"Error\", \"respuesta\" : \"Declaracion incorrecta del char, debe ir intre comillas simples\"}";
+                            return "{\"tipo\" : \"Error\", \"respuesta\" : \"Asignacion incorrecta de char, debe ir intre comillas simples\"}";
                         }
                         else {
                             valorVarChar = valorVarStr1[1];
@@ -232,7 +239,7 @@ string lineReader::separarDeclaracion() {
                         }
                     }
                     else {
-                        valorVarChar = encontrarCharVar(posicionVar);
+                        valorVarChar =  *((char*) memoria[varTemp->posicion]);
                     }
                 }
             }
@@ -270,7 +277,6 @@ string lineReader::declarar(){
 
         memoria[numVariables] = (int*) malloc(sizeof(int));
         *((int*) memoria[numVariables]) = valorVarNumT; 
-
         pushVariable(tipoVar, nombreVar, numVariables, isllaveAbierta);
         isllaveAbierta = false;
 
@@ -326,9 +332,13 @@ string lineReader::declarar(){
         isllaveAbierta = false;
 
         return "{\"tipo\" : \"Declaracion\", \"respuesta\" : \"" + stackVar->tipo + " " + stackVar->nombre + " = " 
-                + to_string(*((char*)memoria[stackVar->posicion])) + " (0x??????????)\"}";
+                + *((char*)memoria[stackVar->posicion]) + " (0x??????????)\"}";
     }
 
+}
+
+string lineReader::asignar() {
+    return "Se asigno algo";
 }
 
 string lineReader::error() {
@@ -336,57 +346,31 @@ string lineReader::error() {
 
 }
 
-double lineReader::encontrarNumVar(int pos) {
+lineReader::variable* lineReader::encontrarVar(string varName) {
     variable *var = stackVar;
-    for (int i = 0; i < pos; i++) {
+    while (var != nullptr) {
+        if (var->nombre == varName) {
+            return var;
+        }
         var = var->next;
-    }
-    if (var->tipo == "int") {
-        return *((int*) memoria[pos]);
-    }
-    else if (var->tipo == "float") {
-        return *((float*) memoria[pos]);
-    }
-    else if (var->tipo == "long") {
-        return *((long*) memoria[pos]);
-    }
-    else if (var->tipo == "double") {
-        return *((double*) memoria[pos]);
     }
     return NULL;
     
 }
 
-char lineReader::encontrarCharVar(int pos) {
-    variable *var = stackVar;
-    for (int i = 0; i < pos; i++) {
-        var = var->next;
+double lineReader::valorVarNum(string tipo, int pos) {
+    if (tipo == "int") {
+        return *((int*) memoria[pos]);
     }
-    if (var->tipo == "char") {
-        return *((char*) memoria[pos]);
+    else if (tipo == "float") {
+        return *((float*) memoria[pos]);
     }
-    return ';';
-}
-
-int lineReader::encontrarPosVar(string name) {
-    variable *var = stackVar;
-    while (var != nullptr) {
-        if (var->nombre == name) {
-            return var->posicion;
-        }  
-        var = var->next; 
+    else if (tipo == "long") {
+        return *((long*) memoria[pos]);
     }
-    return -1;
-}
-
-void lineReader::popVariable() {
-
-    variable *aux = stackVar;
-    stackVar = stackVar->next;
-    free(memoria[aux->posicion]);
-    memoria[aux->posicion] = nullptr;
-    delete aux;
-    numVariables --;
+    else {
+        return *((double*) memoria[pos]);
+    }
 }
 
 void lineReader::pushVariable(string tipo, string nombre, int posicion, bool llaves) {
@@ -401,4 +385,16 @@ void lineReader::pushVariable(string tipo, string nombre, int posicion, bool lla
     nuevoVar->next = stackVar;
     stackVar = nuevoVar;
 }
+
+void lineReader::popVariable() {
+
+    variable *aux = stackVar;
+    stackVar = stackVar->next;
+    free(memoria[aux->posicion]);
+    memoria[aux->posicion] = nullptr;
+    delete aux;
+    numVariables --;
+}
+
+
 
