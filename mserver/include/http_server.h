@@ -1,3 +1,14 @@
+/// * @file http_server.h
+/// * @version 1.0
+/// * @date 28/04/2021
+/// * @title Clase plantilla http_server.h
+/// * @brief clase para el manejo del servidor
+/// * @htmlinclude yes
+///
+///
+
+
+
 #pragma once
 
 #include <iostream>
@@ -19,6 +30,11 @@ namespace learning {
     constexpr char kPort[] = "5000"; // Puerto
     constexpr int kThreads = 10; // Cantidad de peticiones que soporta al mismo tiempo
 
+    /**
+     *  @class HttpServer
+     *  @brief clase que se encarga de inicializar el server y leer peticiones
+     */
+
     class HttpServer {
         public:
         HttpServer(served::multiplexer multiplexer) : multiplexer(multiplexer) {}
@@ -31,7 +47,7 @@ namespace learning {
 
                 
 
-                // Restornar si se agrego correctamente o no
+                // Retornar si se agrego correctamente o no
                 if (linea != "") {
                     
                     response << lector.leerLinea(linea);

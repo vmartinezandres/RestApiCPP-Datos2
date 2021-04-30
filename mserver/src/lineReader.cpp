@@ -13,6 +13,10 @@ struct lineReader::variable {
     bool comienzoLlaves;
     variable *next;
 };
+/**
+ * @struct linereader
+ * @brief Estructura que se encarga de leer la linea que se envia desde el IDE
+ */
 
 // Constructor
 lineReader::lineReader() {
@@ -25,11 +29,21 @@ lineReader::lineReader() {
 }
 
 // Funciones
+/**
+ * @brief leerLinea
+ * @param linea que se esta leyendo
+ * @return operacion que se va a ejecutar
+ * @htmlinclude YES
+ */
 string lineReader::leerLinea(string _linea) {
     linea = _linea;
     return definirOperacion();
 }
-
+/**
+ * @brief  define que tiene que hacerse con el caracter en el que se encuentra
+ * @return el caso a ejecutar
+ *
+ */
 string lineReader::definirOperacion() {
     istringstream isstream(linea);
     isstream >> primeraPalabra;
@@ -67,14 +81,18 @@ string lineReader::definirOperacion() {
     }
     
 }
-
+/**
+ * @brief abre llaves si se encuentra una {
+ */
 string lineReader::abrirLlaves(){
     isllaveAbierta = true;
     llavesDisponibles ++;
     return "{\"tipo\" : \"Aviso\", \"respuesta\" : \"Se abrieron llaves\"}";
 
 }
-
+/**
+ * @brief cierra llaves si se encuentra una }
+ */
 string lineReader::cerrarLlaves(){
     if (llavesDisponibles > 0) {
         while (!stackVar->comienzoLlaves) {
@@ -91,12 +109,16 @@ string lineReader::cerrarLlaves(){
     
 
 }
-
+/**
+ * @brief confirma que se imprimio algo
+ */
 string lineReader::imprimir(){
     return "se imprimio algo";
 
 }
-
+/**
+ * @brief se encarga de imprimir la razon del error que encuentra en la linea
+ */
 string lineReader::separarAsignacion() {
     istringstream isstream(linea);
  
@@ -267,7 +289,9 @@ string lineReader::separarAsignacion() {
     }
     return declarar(); 
 }
-
+/**
+ * @brief
+ */
 string lineReader::declarar(){
 
     numVariables ++;
@@ -357,7 +381,12 @@ lineReader::variable* lineReader::encontrarVar(string varName) {
     return NULL;
     
 }
-
+/**
+ *
+ * @param tipo
+ * @param pos
+ * @return
+ */
 double lineReader::valorVarNum(string tipo, int pos) {
     if (tipo == "int") {
         return *((int*) memoria[pos]);
