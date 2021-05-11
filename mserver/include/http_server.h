@@ -1,14 +1,3 @@
-/// * @file http_server.h
-/// * @version 1.0
-/// * @date 28/04/2021
-/// * @title Clase plantilla http_server.h
-/// * @brief clase para el manejo del servidor
-/// * @htmlinclude yes
-///
-///
-
-
-
 #pragma once
 
 #include <iostream>
@@ -30,11 +19,6 @@ namespace learning {
     constexpr char kPort[] = "5000"; // Puerto
     constexpr int kThreads = 10; // Cantidad de peticiones que soporta al mismo tiempo
 
-    /**
-     *  @class HttpServer
-     *  @brief clase que se encarga de inicializar el server y leer peticiones
-     */
-
     class HttpServer {
         public:
         HttpServer(served::multiplexer multiplexer) : multiplexer(multiplexer) {}
@@ -45,9 +29,7 @@ namespace learning {
                 json::JSON request_body = json::JSON::Load(request.body());
                 string linea = request_body["line"].ToString();
 
-                
-
-                // Retornar si se agrego correctamente o no
+                // Restornar si se agrego correctamente o no
                 if (linea != "") {
                     
                     response << lector.leerLinea(linea);
@@ -63,12 +45,7 @@ namespace learning {
         auto ClearLines() {
             return [&](served::response &response, const served::request &request) {
 
-                // MongoDbHandler mhandler;
-                // bool delete_successful = mhandler.ClearLinesFromDb();
-
-                // // Retornar si se elimino todo correctamente o no
-                // delete_successful ? served::response::stock_reply(200, response)
-                //                     : served::response::stock_reply(404, response);
+                response << lector.clear();
 
             };
         }

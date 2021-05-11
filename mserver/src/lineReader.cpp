@@ -13,10 +13,6 @@ struct lineReader::variable {
     bool comienzoLlaves;
     variable *next;
 };
-/**
- * @struct linereader
- * @brief Estructura que se encarga de leer la linea que se envia desde el IDE
- */
 
 // Constructor
 lineReader::lineReader() {
@@ -29,21 +25,14 @@ lineReader::lineReader() {
 }
 
 // Funciones
-/**
- * @brief leerLinea
- * @param linea que se esta leyendo
- * @return operacion que se va a ejecutar
- * @htmlinclude YES
- */
 string lineReader::leerLinea(string _linea) {
     linea = _linea;
+    if (linea == "") {
+        return "{\"tipoMensaje\" : \"Aviso\", \"mensaje\" : \"Espacio en blanco\"}";
+    }
     return definirOperacion();
 }
-/**
- * @brief  define que tiene que hacerse con el caracter en el que se encuentra
- * @return el caso a ejecutar
- *
- */
+
 string lineReader::definirOperacion() {
     istringstream isstream(linea);
     isstream >> primeraPalabra;
@@ -66,13 +55,15 @@ string lineReader::definirOperacion() {
     else if (primeraPalabra == "int" || primeraPalabra == "float" || primeraPalabra == "long" ||
             primeraPalabra == "double" || primeraPalabra == "char") {
         tipoVar = primeraPalabra;
-        return separarAsignacion();
+        return separarAsignacion('D');
     }
 
     varTemp = encontrarVar(primeraPalabra);
     if (varTemp != NULL) {
         // Asignacion
-        return asignar();
+        linea = varTemp->tipo + " " + linea;
+        tipoVar = varTemp->tipo;
+        return separarAsignacion('A');
 
     }
     else {
@@ -81,18 +72,14 @@ string lineReader::definirOperacion() {
     }
     
 }
-/**
- * @brief abre llaves si se encuentra una {
- */
+
 string lineReader::abrirLlaves(){
     isllaveAbierta = true;
     llavesDisponibles ++;
-    return "{\"tipo\" : \"Aviso\", \"respuesta\" : \"Se abrieron llaves\"}";
+    return "{\"tipoMensaje\" : \"Aviso\", \"mensaje\" : \"Se abrieron llaves\"}";
 
 }
-/**
- * @brief cierra llaves si se encuentra una }
- */
+
 string lineReader::cerrarLlaves(){
     if (llavesDisponibles > 0) {
         while (!stackVar->comienzoLlaves) {
@@ -100,26 +87,68 @@ string lineReader::cerrarLlaves(){
         }
         popVariable();
         llavesDisponibles --;
-        return "{\"tipo\" : \"Aviso\", \"respuesta\" : \"Se cerraron llaves\"}";
-
+        return "{\"tipoMensaje\" : \"Aviso\", \"mensaje\" : \"Se cerraron llaves\"}";
     }
     else {
-        return "{\"tipo\" : \"Error\", \"respuesta\" : \"No se han abierto llaves\"}";
+        return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"No se han abierto llaves\"}";
     }
     
 
 }
-/**
- * @brief confirma que se imprimio algo
- */
-string lineReader::imprimir(){
-    return "se imprimio algo";
 
+string lineReader::imprimir() {
+    istringstream isstream(linea);
+
+    vueltaWhile = 1;
+    while(!isstream.eof()){
+        
+        isstream >> temporal;
+        switch (vueltaWhile) {
+            case 2:
+                // Comprobando sintaxis del cout
+                if (temporal != "<<") {
+                    return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Sintaxis incorrecta en el cout\"}";
+                }
+                break;
+
+            case 3:
+                if (temporal == ";") {
+                    return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Sintaxis incorrecta en el cout\"}";
+                }
+                nombreVar = temporal.substr(0, temporal.length() - 1);
+                break;
+            case 4:
+                // Comprobando existe palabras sobrantes del segundo valor
+                return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Solo se puede imprimir una varibale\"}";
+                break;
+
+        }
+        vueltaWhile ++;
+    }
+    varTemp = encontrarVar(nombreVar);
+    if (varTemp == NULL) {
+        return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Variable no encontrada\"}";
+    }
+    else {
+        if (varTemp->tipo == "int") {
+            return "{\"tipoMensaje\" : \"Cout\", \"mensaje\" : \"" + to_string(*((int*)memoria[varTemp->posicion])) + "\"}";
+        }
+        else if (varTemp->tipo == "float") {
+            return "{\"tipoMensaje\" : \"Cout\", \"mensaje\" : \"" + to_string(*((float*)memoria[varTemp->posicion])) + "\"}";
+        }
+        else if (varTemp->tipo == "long") {
+            return "{\"tipoMensaje\" : \"Cout\", \"mensaje\" : \"" + to_string(*((long*)memoria[varTemp->posicion])) + "\"}";
+        }
+        else if (varTemp->tipo == "double") {
+            return "{\"tipoMensaje\" : \"Cout\", \"mensaje\" : \"" + to_string(*((double*)memoria[varTemp->posicion])) + "\"}";
+        }
+        else {
+            return "{\"tipoMensaje\" : \"Cout\", \"mensaje\" : \"" + nada + *((char*)memoria[varTemp->posicion]) + "\"}";
+        }
+    }
 }
-/**
- * @brief se encarga de imprimir la razon del error que encuentra en la linea
- */
-string lineReader::separarAsignacion() {
+
+string lineReader::separarAsignacion(char opcionAsignacion) {
     istringstream isstream(linea);
  
     vueltaWhile = 1;
@@ -138,7 +167,7 @@ string lineReader::separarAsignacion() {
             case 2:
                 // Comprobando sintaxis del nombre
                 if (temporal == ";") {
-                    return "{\"tipo\" : \"Error\", \"respuesta\" : \"Sintaxis incorrecta en la declaracion\"}";
+                    return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Sintaxis incorrecta en la declaracion\"}";
                 }
                 
                 nombreVar = temporal;
@@ -147,7 +176,7 @@ string lineReader::separarAsignacion() {
             case 3:
                 // Comprobando sintaxis del igual
                 if (temporal != "=") {
-                    return "{\"tipo\" : \"Error\", \"respuesta\" : \"Sintaxis incorrecta en la declaracion\"}";
+                    return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Sintaxis incorrecta en la declaracion\"}";
                 }
                
                 igualdad = temporal[0];
@@ -156,7 +185,7 @@ string lineReader::separarAsignacion() {
             case 4:
                 // Comprobando sintaxis del primer valor
                 if (temporal == ";") {
-                    return "{\"tipo\" : \"Error\", \"respuesta\" : \"Sintaxis incorrecta en la declaracion del primer valor\"}";
+                    return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Sintaxis incorrecta en la declaracion del primer valor\"}";
                 }
                 
                 valorVarStr1 = temporal;
@@ -165,7 +194,7 @@ string lineReader::separarAsignacion() {
             case 5:
                 // Comprobando sintaxis del operador
                 if (temporal != "+" && temporal != "-" && temporal != "*" && temporal != "-" && temporal != "/") {
-                    return "{\"tipo\" : \"Error\", \"respuesta\" : \"Operador desconocido\"}";
+                    return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Operador desconocido\"}";
                 }
                 
                 operador = temporal[0];
@@ -174,13 +203,13 @@ string lineReader::separarAsignacion() {
             case 6:
                 // Comprobando sintaxis del segundo valor
                 if (temporal == ";") {
-                    return "{\"tipo\" : \"Error\", \"respuesta\" : \"Sintaxis incorrecta en la declaracion del segundo valor\"}";
+                    return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Sintaxis incorrecta en la declaracion del segundo valor\"}";
                 }
                 valorVarStr2 = temporal;
                 break;
             case 7:
                 // Comprobando existe palabras sobrantes del segundo valor
-                return "{\"tipo\" : \"Error\", \"respuesta\" : \"Sintaxis incorrecta en la declaracion\"}";
+                return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Sintaxis incorrecta en la declaracion\"}";
                 break;
         }
         vueltaWhile ++;
@@ -196,7 +225,7 @@ string lineReader::separarAsignacion() {
         // No hay operador o el operador es +, -, * o /
 
         if (valorVarStr1 == "") {
-            return "{\"tipo\" : \"Error\", \"respuesta\" : \"Debe asignarse un valor\"}";
+            return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Debe asignarse un valor\"}";
         }
         else {
             // Existe al menos un valor
@@ -207,7 +236,7 @@ string lineReader::separarAsignacion() {
             }
             else {
                 if (valorVarStr2 == "") {
-                    return "{\"tipo\" : \"Error\", \"respuesta\" : \"Falta un segundo valor\"}";
+                    return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Falta un segundo valor\"}";
                 }
                 valorVarStr2 = valorVarStr2.substr(0, valorVarStr2.length() -1 );
             }
@@ -222,7 +251,7 @@ string lineReader::separarAsignacion() {
                 catch(exception) {
                     varTemp = encontrarVar(valorVarStr1);
                     if (varTemp == NULL) {
-                        return "{\"tipo\" : \"Error\", \"respuesta\" : \"Asignacion no valida\"}";
+                        return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Asignacion no valida\"}";
                     }
                     valorVarNum1 = valorVarNum(varTemp->tipo, varTemp->posicion);
                     
@@ -234,7 +263,7 @@ string lineReader::separarAsignacion() {
                     catch(exception) {
                         varTemp = encontrarVar(valorVarStr2);
                         if (varTemp == NULL) {
-                            return "{\"tipo\" : \"Error\", \"respuesta\" : \"Asignacion no valida\"}";
+                            return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Asignacion no valida\"}";
                         }
                         valorVarNum2 = valorVarNum(varTemp->tipo, varTemp->posicion);
                     }
@@ -243,17 +272,17 @@ string lineReader::separarAsignacion() {
             else {
                 // Tipo char
                 if (operador != NULL) {
-                    return "{\"tipo\" : \"Error\", \"respuesta\" : \"Asignacion no valida, char no se pueden operar)\"}";
+                    return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Asignacion no valida, char no se pueden operar)\"}";
                 }
                 else {
                     varTemp = encontrarVar(valorVarStr1);
                     if (varTemp == NULL) {
                         if (valorVarStr1.length() != 3) {
-                            return "{\"tipo\" : \"Error\", \"respuesta\" : \"Asignacion incorrecta de char\"}";
+                            return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Asignacion incorrecta de char\"}";
                             
                         }
                         else if (valorVarStr1[0] != '\'' || valorVarStr1[2] != '\'') {
-                            return "{\"tipo\" : \"Error\", \"respuesta\" : \"Asignacion incorrecta de char, debe ir intre comillas simples\"}";
+                            return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Asignacion incorrecta de char, debe ir intre comillas simples\"}";
                         }
                         else {
                             valorVarChar = valorVarStr1[1];
@@ -287,14 +316,22 @@ string lineReader::separarAsignacion() {
             }            
         }
     }
-    return declarar(); 
+    switch (opcionAsignacion) {
+    case 'D':
+        return declarar();
+        break;
+    
+    case 'A':
+        return asignar();
+        break;
+    }
+     
 }
-/**
- * @brief
- */
+
 string lineReader::declarar(){
 
     numVariables ++;
+    ostringstream oss;
 
     // Casos posibles
     if (tipoVar == "int") {
@@ -302,10 +339,14 @@ string lineReader::declarar(){
         memoria[numVariables] = (int*) malloc(sizeof(int));
         *((int*) memoria[numVariables]) = valorVarNumT; 
         pushVariable(tipoVar, nombreVar, numVariables, isllaveAbierta);
+
+        oss << memoria[numVariables];
+        address = oss.str();
         isllaveAbierta = false;
 
-        return "{\"tipo\" : \"Declaracion\", \"respuesta\" : \"" + stackVar->tipo + " " + stackVar->nombre + " = " 
-                + to_string(*((int*)memoria[stackVar->posicion])) + " (0x??????????)\"}";
+        
+        return "{\"tipoMensaje\" : \"Declaracion\", \"mensaje\" : \"" + stackVar->tipo + " " + stackVar->nombre + " = " 
+                + to_string(*((int*)memoria[stackVar->posicion])) + " (" + address + ")\"}";
 
     }
 
@@ -313,12 +354,14 @@ string lineReader::declarar(){
 
         memoria[numVariables] = (float*) malloc(sizeof(float));
         *((float*) memoria[numVariables]) = valorVarNumT;
-
         pushVariable(tipoVar, nombreVar, numVariables, isllaveAbierta);
+
+        oss << memoria[numVariables];
+        address = oss.str();
         isllaveAbierta = false; 
         
-        return "{\"tipo\" : \"Declaracion\", \"respuesta\" : \"" + stackVar->tipo + " " + stackVar->nombre + " = " 
-                + to_string(*((float*)memoria[stackVar->posicion])) + " (0x??????????)\"}";
+        return "{\"tipoMensaje\" : \"Declaracion\", \"mensaje\" : \"" + stackVar->tipo + " " + stackVar->nombre + " = " 
+                + to_string(*((float*)memoria[stackVar->posicion])) + " (" + address + ")\"}";
 
     }
 
@@ -326,12 +369,14 @@ string lineReader::declarar(){
 
         memoria[numVariables] = (long*) malloc(sizeof(long));
         *((long*) memoria[numVariables]) = valorVarNumT;
-
         pushVariable(tipoVar, nombreVar, numVariables, isllaveAbierta);
+
+        oss << memoria[numVariables];
+        address = oss.str();
         isllaveAbierta = false;
 
-        return "{\"tipo\" : \"Declaracion\", \"respuesta\" : \"" + stackVar->tipo + " " + stackVar->nombre + " = " 
-                + to_string(*((long*)memoria[stackVar->posicion])) + " (0x??????????)\"}";
+        return "{\"tipoMensaje\" : \"Declaracion\", \"mensaje\" : \"" + stackVar->tipo + " " + stackVar->nombre + " = " 
+                + to_string(*((long*)memoria[stackVar->posicion])) + " (" + address + ")\"}";
 
     }
 
@@ -339,34 +384,100 @@ string lineReader::declarar(){
         
         memoria[numVariables] = (double*) malloc(sizeof(double));
         *((double*) memoria[numVariables]) = valorVarNumT;
-        
         pushVariable(tipoVar, nombreVar, numVariables, isllaveAbierta);
+
+        oss << memoria[numVariables];
+        address = oss.str();
         isllaveAbierta = false;
 
-        return "{\"tipo\" : \"Declaracion\", \"respuesta\" : \"" + stackVar->tipo + " " + stackVar->nombre + " = " 
-                + to_string(*((double*)memoria[stackVar->posicion])) + " (0x??????????)\"}";
+        return "{\"tipoMensaje\" : \"Declaracion\", \"mensaje\" : \"" + stackVar->tipo + " " + stackVar->nombre + " = " 
+                + to_string(*((double*)memoria[stackVar->posicion])) + " (" + address + ")\"}";
     }
 
     else {
 
         memoria[numVariables] = (char*) malloc(sizeof(char));
         *((char*) memoria[numVariables]) = valorVarChar;
-        
         pushVariable(tipoVar, nombreVar, numVariables, isllaveAbierta);
+
+        oss << memoria[numVariables];
+        address = oss.str();
         isllaveAbierta = false;
 
-        return "{\"tipo\" : \"Declaracion\", \"respuesta\" : \"" + stackVar->tipo + " " + stackVar->nombre + " = " 
-                + *((char*)memoria[stackVar->posicion]) + " (0x??????????)\"}";
+        return "{\"tipoMensaje\" : \"Declaracion\", \"mensaje\" : \"" + stackVar->tipo + " " + stackVar->nombre + " = " 
+                + *((char*)memoria[stackVar->posicion]) + " (" + address + ")\"}";
     }
 
 }
 
 string lineReader::asignar() {
-    return "Se asigno algo";
+
+    varTemp = encontrarVar(primeraPalabra);
+
+    ostringstream oss;
+    oss << memoria[varTemp->posicion];
+    address = oss.str();
+
+    // Casos posibles
+    if (tipoVar == "int") {
+
+        *((int*) memoria[varTemp->posicion]) = valorVarNumT; 
+
+        return "{\"tipoMensaje\" : \"Asignacion\", \"mensaje\" : \"" + varTemp->tipo + " " + varTemp->nombre + " = " 
+                + to_string(*((int*)memoria[varTemp->posicion])) + " (" + address + ")\"}";
+
+    }
+
+    else if (tipoVar == "float") {
+
+        *((float*) memoria[varTemp->posicion]) = valorVarNumT;
+        
+        return "{\"tipoMensaje\" : \"Asignacion\", \"mensaje\" : \"" + varTemp->tipo + " " + varTemp->nombre + " = " 
+                + to_string(*((float*)memoria[varTemp->posicion])) + " (" + address + ")\"}";
+
+    }
+
+    else if (tipoVar == "long") {
+
+        *((long*) memoria[varTemp->posicion]) = valorVarNumT;
+        
+        return "{\"tipoMensaje\" : \"Asignacion\", \"mensaje\" : \"" + varTemp->tipo + " " + varTemp->nombre + " = " 
+                + to_string(*((long*)memoria[varTemp->posicion])) + " (" + address + ")\"}";
+
+    }
+
+    else if (tipoVar == "double") {
+        
+        *((double*) memoria[varTemp->posicion]) = valorVarNumT;
+        
+        return "{\"tipoMensaje\" : \"Asignacion\", \"mensaje\" : \"" + varTemp->tipo + " " + varTemp->nombre + " = " 
+                + to_string(*((double*)memoria[varTemp->posicion])) + " (" + address + ")\"}";
+    }
+
+    else {
+
+        *((char*) memoria[numVariables]) = valorVarChar;
+        
+        return "{\"tipoMensaje\" : \"Asignacion\", \"mensaje\" : \"" + varTemp->tipo + " " + varTemp->nombre + " = " 
+                + *((char*)memoria[varTemp->posicion]) + " (" + address + ")\"}";
+    }
 }
 
 string lineReader::error() {
-    return "hubo un error";
+    return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Sintaxis desconocida\"}";
+
+}
+
+string lineReader::clear() {
+    while (stackVar != NULL) {
+        popVariable();
+    }
+    numVariables = -1;
+    isllaveAbierta = true;
+    llavesDisponibles = 0;
+
+    return "{\"tipoMensaje\" : \"Aviso\", \"mensaje\" : \"Se limpio la memoria\"}";
+
 
 }
 
@@ -381,12 +492,7 @@ lineReader::variable* lineReader::encontrarVar(string varName) {
     return NULL;
     
 }
-/**
- *
- * @param tipo
- * @param pos
- * @return
- */
+
 double lineReader::valorVarNum(string tipo, int pos) {
     if (tipo == "int") {
         return *((int*) memoria[pos]);

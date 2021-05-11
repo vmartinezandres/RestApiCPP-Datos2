@@ -1,8 +1,3 @@
-/**
- *  Jose Julian Solano Quesada
- *  lineReader.h file
- */
-
 #ifndef MONGOCXX-EXAMPLE_LINEREADER_H
 #define MONGOCXX-EXAMPLE_LINEREADER_H
 
@@ -10,15 +5,9 @@
 
 using namespace std;
 
-/**
- * @class linereader
- * @brief clase donde se crean todas las variables asociadas a leer lo que se envia desde el IDE
- * @htmlinclude YES
- */
-
 class lineReader {    
 private:
-    struct variable; /*!<caracter que se esta leyendo actualmente */
+    struct variable;
 
     variable *stackVar;
     variable *varTemp;
@@ -36,6 +25,8 @@ private:
     string valorVarStr1;
     string valorVarStr2;
     string temporal;
+    string nada = "";
+    string address;
  
     char igualdad;
     char operador;
@@ -46,17 +37,18 @@ private:
     double valorVarNumT;
 
     bool isllaveAbierta;
-
-
+    
 public:
     lineReader();
     string leerLinea(string);
+    string clear();
+
 private:
     string definirOperacion();
     string abrirLlaves();
     string cerrarLlaves();
     string imprimir();
-    string separarAsignacion();
+    string separarAsignacion(char);
     string declarar();
     string asignar();
     string error();
