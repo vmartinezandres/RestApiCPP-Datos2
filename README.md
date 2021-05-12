@@ -16,3 +16,4 @@ Los siguientes pasos son para conectarse a MongoDb, desde C++:
 - sudo chmod +x setup-mongocxx
 - sudo ./setup-mongocxx
 8) Ingresar en la terminal de Visual Studio Code: make run
+
