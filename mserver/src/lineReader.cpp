@@ -27,50 +27,55 @@ lineReader::lineReader() {
 // Funciones
 string lineReader::leerLinea(string _linea) {
     linea = _linea;
-    if (linea == "") {
-        return "{\"tipoMensaje\" : \"Aviso\", \"mensaje\" : \"Espacio en blanco\"}";
-    }
     return definirOperacion();
 }
 
 string lineReader::definirOperacion() {
-    istringstream isstream(linea);
-    isstream >> primeraPalabra;
     // Abrir llaves
-    if (primeraPalabra == "{") {
+    if (linea == "{") {
         return abrirLlaves();
     }
     
     // Cerrar llaves
-    else if (primeraPalabra == "}") {
+    else if (linea == "}") {
         return cerrarLlaves();
     }
     
-    // Cout
-    else if (primeraPalabra == "cout") {
-        return imprimir();
-    }
-
-    // Declaracion
-    else if (primeraPalabra == "int" || primeraPalabra == "float" || primeraPalabra == "long" ||
-            primeraPalabra == "double" || primeraPalabra == "char") {
-        tipoVar = primeraPalabra;
-        return separarAsignacion('D');
-    }
-
-    varTemp = encontrarVar(primeraPalabra);
-    if (varTemp != NULL) {
-        // Asignacion
-        linea = varTemp->tipo + " " + linea;
-        tipoVar = varTemp->tipo;
-        return separarAsignacion('A');
-
-    }
     else {
-       // Error
-        return error();
+        if (linea[linea.length() - 1] == ';') {
+            istringstream isstream(linea);
+            isstream >> primeraPalabra;
+            
+            // Cout
+            if (primeraPalabra == "cout") {
+                return imprimir();
+            }
+
+            // Declaracion
+            else if (primeraPalabra == "int" || primeraPalabra == "float" || primeraPalabra == "long" ||
+                    primeraPalabra == "double" || primeraPalabra == "char") {
+                tipoVar = primeraPalabra;
+                return separarAsignacion('D');
+            }
+
+            varTemp = encontrarVar(primeraPalabra);
+            if (varTemp != NULL) {
+                // Asignacion
+                linea = varTemp->tipo + " " + linea;
+                tipoVar = varTemp->tipo;
+                return separarAsignacion('A');
+
+            }
+            else {
+            // Error
+                return error();
+            }
+        }
+        else {
+            return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Falta el punto y coma\"}";
+
+        }
     }
-    
 }
 
 string lineReader::abrirLlaves(){
@@ -114,17 +119,30 @@ string lineReader::imprimir() {
             case 3:
                 if (temporal == ";") {
                     return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Sintaxis incorrecta en el cout\"}";
-                }
-                nombreVar = temporal.substr(0, temporal.length() - 1);
+                }    
+
+                // Se imprime texto    
+                else if (temporal[0] == '(' && linea[linea.length() - 2] == ')') {
+                    posParentesis = 8;
+                    while (linea[posParentesis] != '(') {
+                        posParentesis++;
+                    }
+                    return "{\"tipoMensaje\" : \"Cout\", \"mensaje\" : \"" + linea.substr(posParentesis + 1, linea.length() - posParentesis - 3) + "\"}";
+                }    
+                
+                nombreVar = temporal;
+                
                 break;
             case 4:
-                // Comprobando existe palabras sobrantes del segundo valor
-                return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Solo se puede imprimir una varibale\"}";
+                return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Solo se puede imprimir una variable a la vez\"}";
                 break;
 
         }
         vueltaWhile ++;
     }
+
+    // Se imprime una variable
+    nombreVar = nombreVar.substr(0, nombreVar.length() - 1); 
     varTemp = encontrarVar(nombreVar);
     if (varTemp == NULL) {
         return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Variable no encontrada\"}";
@@ -146,6 +164,8 @@ string lineReader::imprimir() {
             return "{\"tipoMensaje\" : \"Cout\", \"mensaje\" : \"" + nada + *((char*)memoria[varTemp->posicion]) + "\"}";
         }
     }
+    
+    
 }
 
 string lineReader::separarAsignacion(char opcionAsignacion) {
@@ -172,7 +192,8 @@ string lineReader::separarAsignacion(char opcionAsignacion) {
                 
                 nombreVar = temporal;
                 break;
-
+                
+                
             case 3:
                 // Comprobando sintaxis del igual
                 if (temporal != "=") {
@@ -333,80 +354,88 @@ string lineReader::declarar(){
     numVariables ++;
     ostringstream oss;
 
-    // Casos posibles
-    if (tipoVar == "int") {
-
-        memoria[numVariables] = (int*) malloc(sizeof(int));
-        *((int*) memoria[numVariables]) = valorVarNumT; 
-        pushVariable(tipoVar, nombreVar, numVariables, isllaveAbierta);
-
-        oss << memoria[numVariables];
-        address = oss.str();
-        isllaveAbierta = false;
-
-        
-        return "{\"tipoMensaje\" : \"Declaracion\", \"mensaje\" : \"" + stackVar->tipo + " " + stackVar->nombre + " = " 
-                + to_string(*((int*)memoria[stackVar->posicion])) + " (" + address + ")\"}";
-
+    // La variable ya existe
+    varTemp = encontrarVar(nombreVar);
+    if (varTemp != NULL) {
+        return "{\"tipoMensaje\" : \"Error\", \"mensaje\" : \"Esta variable ya existe\"}";
     }
-
-    else if (tipoVar == "float") {
-
-        memoria[numVariables] = (float*) malloc(sizeof(float));
-        *((float*) memoria[numVariables]) = valorVarNumT;
-        pushVariable(tipoVar, nombreVar, numVariables, isllaveAbierta);
-
-        oss << memoria[numVariables];
-        address = oss.str();
-        isllaveAbierta = false; 
-        
-        return "{\"tipoMensaje\" : \"Declaracion\", \"mensaje\" : \"" + stackVar->tipo + " " + stackVar->nombre + " = " 
-                + to_string(*((float*)memoria[stackVar->posicion])) + " (" + address + ")\"}";
-
-    }
-
-    else if (tipoVar == "long") {
-
-        memoria[numVariables] = (long*) malloc(sizeof(long));
-        *((long*) memoria[numVariables]) = valorVarNumT;
-        pushVariable(tipoVar, nombreVar, numVariables, isllaveAbierta);
-
-        oss << memoria[numVariables];
-        address = oss.str();
-        isllaveAbierta = false;
-
-        return "{\"tipoMensaje\" : \"Declaracion\", \"mensaje\" : \"" + stackVar->tipo + " " + stackVar->nombre + " = " 
-                + to_string(*((long*)memoria[stackVar->posicion])) + " (" + address + ")\"}";
-
-    }
-
-    else if (tipoVar == "double") {
-        
-        memoria[numVariables] = (double*) malloc(sizeof(double));
-        *((double*) memoria[numVariables]) = valorVarNumT;
-        pushVariable(tipoVar, nombreVar, numVariables, isllaveAbierta);
-
-        oss << memoria[numVariables];
-        address = oss.str();
-        isllaveAbierta = false;
-
-        return "{\"tipoMensaje\" : \"Declaracion\", \"mensaje\" : \"" + stackVar->tipo + " " + stackVar->nombre + " = " 
-                + to_string(*((double*)memoria[stackVar->posicion])) + " (" + address + ")\"}";
-    }
-
     else {
+        // Casos posibles
+        if (tipoVar == "int") {
 
-        memoria[numVariables] = (char*) malloc(sizeof(char));
-        *((char*) memoria[numVariables]) = valorVarChar;
-        pushVariable(tipoVar, nombreVar, numVariables, isllaveAbierta);
+            memoria[numVariables] = (int*) malloc(sizeof(int));
+            *((int*) memoria[numVariables]) = valorVarNumT; 
+            pushVariable(tipoVar, nombreVar, numVariables, isllaveAbierta);
 
-        oss << memoria[numVariables];
-        address = oss.str();
-        isllaveAbierta = false;
+            oss << memoria[numVariables];
+            address = oss.str();
+            isllaveAbierta = false;
 
-        return "{\"tipoMensaje\" : \"Declaracion\", \"mensaje\" : \"" + stackVar->tipo + " " + stackVar->nombre + " = " 
-                + *((char*)memoria[stackVar->posicion]) + " (" + address + ")\"}";
+            
+            return "{\"tipoMensaje\" : \"Declaracion\", \"mensaje\" : \"" + stackVar->tipo + " " + stackVar->nombre + " = " 
+                    + to_string(*((int*)memoria[stackVar->posicion])) + " (" + address + ")\"}";
+
+        }
+
+        else if (tipoVar == "float") {
+
+            memoria[numVariables] = (float*) malloc(sizeof(float));
+            *((float*) memoria[numVariables]) = valorVarNumT;
+            pushVariable(tipoVar, nombreVar, numVariables, isllaveAbierta);
+
+            oss << memoria[numVariables];
+            address = oss.str();
+            isllaveAbierta = false; 
+            
+            return "{\"tipoMensaje\" : \"Declaracion\", \"mensaje\" : \"" + stackVar->tipo + " " + stackVar->nombre + " = " 
+                    + to_string(*((float*)memoria[stackVar->posicion])) + " (" + address + ")\"}";
+
+        }
+
+        else if (tipoVar == "long") {
+
+            memoria[numVariables] = (long*) malloc(sizeof(long));
+            *((long*) memoria[numVariables]) = valorVarNumT;
+            pushVariable(tipoVar, nombreVar, numVariables, isllaveAbierta);
+
+            oss << memoria[numVariables];
+            address = oss.str();
+            isllaveAbierta = false;
+
+            return "{\"tipoMensaje\" : \"Declaracion\", \"mensaje\" : \"" + stackVar->tipo + " " + stackVar->nombre + " = " 
+                    + to_string(*((long*)memoria[stackVar->posicion])) + " (" + address + ")\"}";
+
+        }
+
+        else if (tipoVar == "double") {
+            
+            memoria[numVariables] = (double*) malloc(sizeof(double));
+            *((double*) memoria[numVariables]) = valorVarNumT;
+            pushVariable(tipoVar, nombreVar, numVariables, isllaveAbierta);
+
+            oss << memoria[numVariables];
+            address = oss.str();
+            isllaveAbierta = false;
+
+            return "{\"tipoMensaje\" : \"Declaracion\", \"mensaje\" : \"" + stackVar->tipo + " " + stackVar->nombre + " = " 
+                    + to_string(*((double*)memoria[stackVar->posicion])) + " (" + address + ")\"}";
+        }
+
+        else {
+
+            memoria[numVariables] = (char*) malloc(sizeof(char));
+            *((char*) memoria[numVariables]) = valorVarChar;
+            pushVariable(tipoVar, nombreVar, numVariables, isllaveAbierta);
+
+            oss << memoria[numVariables];
+            address = oss.str();
+            isllaveAbierta = false;
+
+            return "{\"tipoMensaje\" : \"Declaracion\", \"mensaje\" : \"" + stackVar->tipo + " " + stackVar->nombre + " = " 
+                    + *((char*)memoria[stackVar->posicion]) + " (" + address + ")\"}";
+        }
     }
+    
 
 }
 
@@ -479,6 +508,48 @@ string lineReader::clear() {
     return "{\"tipoMensaje\" : \"Aviso\", \"mensaje\" : \"Se limpio la memoria\"}";
 
 
+}
+
+string lineReader::memory() {
+    string respuetaMemoria = "{\"memoria\" : ["; 
+    variable *varTemp = stackVar;
+
+    while (varTemp != nullptr) {
+        ostringstream oss;
+        oss << memoria[varTemp->posicion];
+        address = oss.str();
+        if (varTemp->tipo == "int") {
+            respuetaMemoria.append("{\"memoryLine\" : \"" + varTemp->tipo + " " + varTemp->nombre + " = " 
+                + to_string(*((int*)memoria[varTemp->posicion])) + " (" + address + ")" + "\"},");
+        }
+
+        else if (varTemp->tipo == "float") {
+            respuetaMemoria.append("{\"memoryLine\" : \"" + varTemp->tipo + " " + varTemp->nombre + " = " 
+                + to_string(*((float*)memoria[varTemp->posicion])) + " (" + address + ")" + "\"},");
+        }
+
+        else if (varTemp->tipo == "long") {
+            respuetaMemoria.append("{\"memoryLine\" : \"" + varTemp->tipo + " " + varTemp->nombre + " = " 
+                + to_string(*((long*)memoria[varTemp->posicion])) + " (" + address + ")" + "\"},");
+        }
+
+        else if (varTemp->tipo == "double") {
+            respuetaMemoria.append("{\"memoryLine\" : \"" + varTemp->tipo + " " + varTemp->nombre + " = " 
+                + to_string(*((double*)memoria[varTemp->posicion])) + " (" + address + ")" + "\"},");
+        }
+
+        else {
+            respuetaMemoria.append("{\"memoryLine\" : \"" + varTemp->tipo + " " + varTemp->nombre + " = " 
+                + *((char*)memoria[varTemp->posicion]) + " (" + address + ")" + "\"},");
+        }
+        
+        varTemp = varTemp->next;
+    }
+
+    respuetaMemoria = respuetaMemoria.substr(0, respuetaMemoria.length() - 1);
+    respuetaMemoria.append("]}");
+    
+    return respuetaMemoria;
 }
 
 lineReader::variable* lineReader::encontrarVar(string varName) {

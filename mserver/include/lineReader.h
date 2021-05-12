@@ -17,6 +17,7 @@ private:
     int numVariables;
     int vueltaWhile;
     int llavesDisponibles;
+    int posParentesis;
     
     string linea;
     string primeraPalabra;
@@ -42,6 +43,7 @@ public:
     lineReader();
     string leerLinea(string);
     string clear();
+    string memory();
 
 private:
     string definirOperacion();

@@ -15,6 +15,7 @@ namespace learning {
     lineReader lector;
     constexpr char kNewLineEndpoint[] = "/newline";
     constexpr char kClearEndpoint[] = "/clear";
+    constexpr char kMemoryEndpoint[] = "/memory";
     constexpr char kIpAddress[] = "0.0.0.0"; // Localhost
     constexpr char kPort[] = "5000"; // Puerto
     constexpr int kThreads = 10; // Cantidad de peticiones que soporta al mismo tiempo
@@ -50,9 +51,18 @@ namespace learning {
             };
         }
 
+        auto MemorySaved() {
+            return [&](served::response &response, const served::request &request) {
+
+                response << lector.memory();
+
+            };
+        }
+
         void InitializeEndpoints() {
             multiplexer.handle(kNewLineEndpoint).post(NewLine());
             multiplexer.handle(kClearEndpoint).get(ClearLines());
+            multiplexer.handle(kMemoryEndpoint).get(MemorySaved());
 
         }
 
